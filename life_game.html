@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Life Ledger</title>
+    <style>
+        :root {
+            --bg-color: #1e1e1e;
+            --text-color: #e0e0e0;
+            --accent-color: #4caf50;
+            --danger-color: #f44336;
+            --secondary-bg: #2d2d2d;
+            --border-color: #444;
+        }
+
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            height: 100vh;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+
+        /* Layout */
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1.5fr 1fr;
+            gap: 20px;
+            width: 100%;
+            height: 100%;
+        }
+
+        .panel {
+            background: var(--secondary-bg);
+            border: 1px solid var(--border-color);
+            padding: 15px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        h2 { border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-top: 0; }
+        h3 { margin-bottom: 5px; color: var(--accent-color); }
+
+        /* Stats */
+        .stat-row { display: flex; justify-content: space-between; margin-bottom: 8px; }
+        .stat-val { font-weight: bold; }
+        .highlight { color: var(--accent-color); }
+        .danger { color: var(--danger-color); }
+
+        /* Comparison Meter */
+        .health-meter-container {
+            margin-top: 20px;
+            border: 1px solid var(--border-color);
+            padding: 10px;
+            background: #222;
+        }
+        .status-text { font-size: 0.9em; margin-bottom: 5px; text-align: center; }
+        .progress-bar {
+            height: 10px;
+            background: #444;
+            width: 100%;
+            position: relative;
+        }
+        .progress-fill {
+            height: 100%;
+            background: var(--accent-color);
+            width: 0%;
+            transition: width 0.5s;
+        }
+
+        /* Actions */
+        .action-group { margin-bottom: 20px; }
+        button {
+            background: #333;
+            color: white;
+            border: 1px solid var(--border-color);
+            padding: 10px;
+            margin-bottom: 5px;
+            width: 100%;
+            cursor: pointer;
+            text-align: left;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+        button:hover:not(:disabled) { background: #444; border-color: var(--accent-color); }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        /* Log */
+        #log { font-size: 0.9em; color: #aaa; flex-grow: 1; }
+        .log-entry { margin-bottom: 5px; border-bottom: 1px solid #333; padding-bottom: 2px; }
+        .log-entry.red { color: var(--danger-color); }
+        .log-entry.green { color: var(--accent-color); }
+
+        /* Responsive */
+        @media (max-width: 800px) {
+            .container { grid-template-columns: 1fr; overflow-y: scroll; display: block; }
+            .panel { margin-bottom: 20px; height: auto; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="panel">
+        <h2>Vital Statistics</h2>
+        <div class="stat-row"><span>Age:</span> <span id="ageDisplay" class="stat-val">18</span></div>
+        <div class="stat-row"><span>Cash:</span> <span id="cashDisplay" class="stat-val highlight">$0</span></div>
+        <div class="stat-row"><span>Net Worth:</span> <span id="netWorthDisplay" class="stat-val">$0</span></div>
+        <div class="stat-row"><span>Income (Mo):</span> <span id="incomeDisplay" class="stat-val">$0</span></div>
+        <div class="stat-row"><span>Expenses (Mo):</span> <span id="expenseDisplay" class="stat-val danger">$0</span></div>
+        <div class="stat-row"><span>Health:</span> <span id="healthDisplay" class="stat-val">100%</span></div>
+        
+        <br>
+        <div class="health-meter-container">
+            <div class="status-text">Financial Peer Comparison</div>
+            <div class="progress-bar"><div id="peerBar" class="progress-fill"></div></div>
+            <div id="peerText" style="text-align: center; font-size: 0.8em; margin-top: 5px;">Average</div>
+        </div>
+
+        <div style="margin-top: auto;">
+            <h3>Assets</h3>
+            <div class="stat-row"><span>Savings (2% APY):</span> <span id="savingsDisplay">$0</span></div>
+            <div class="stat-row"><span>Stocks (Index):</span> <span id="stocksDisplay">$0</span></div>
+            <div class="stat-row"><span>Real Estate:</span> <span id="realEstateDisplay">$0</span></div>
+        </div>
+    </div>
+
+    <div class="panel">
+        <h2>Actions</h2>
+        
+        <div class="action-group">
+            <h3>Career</h3>
+            <div id="jobTitle">Unemployed</div>
+            <button id="btnWork" onclick="work()">Work Extra Shift (+$100)</button>
+            <button id="btnAskRaise" onclick="askRaise()">Ask for Raise (Req: High Skill)</button>
+            <button id="btnNetwork" onclick="network()">Network (Cost: $50)</button>
+        </div>
+
+        <div class="action-group" id="eduSection">
+            <h3>Education & Skill</h3>
+            <button id="btnStudy" onclick="study()">Self Study (Free)</button>
+            <button id="btnCourse" onclick="takeCourse()">Certification (Cost: $500)</button>
+        </div>
+
+        <div class="action-group" id="investSection" style="display:none;">
+            <h3>Investments</h3>
+            <button onclick="buyStock()">Buy Index Fund ($1k)</button>
+            <button onclick="buyRealEstate()">Buy Rental Property ($50k)</button>
+        </div>
+    </div>
+
+    <div class="panel">
+        <h2>Life Log</h2>
+        <div id="log"></div>
+    </div>
+</div>
+
+<script>
+    // --- Game Configuration & State ---
+    const GAME_SPEED = 500; // ms per tick (1 tick = 1 month)
+    
+    let state = {
+        ageMonths: 18 * 12,
+        cash: 200,
+        skill: 0,
+        networkLevel: 0,
+        health: 100,
+        isDead: false,
+        paused: false,
+        
+        // Career
+        jobTitle: "Fast Food Crew",
+        salary: 1200, // Monthly
+        raiseCount: 0,
+        
+        // Assets
+        savings: 0,
+        stocks: 0,
+        realEstate: 0,
+        
+        // Economy
+        expenses: 800, // Rent + Food
+        inflation: 1.00,
+        marketTrend: 1.0
+    };
+
+    // US Average Net Worth Data (Approximate for Logic)
+    const benchmarks = {
+        20: 5000,
+        30: 45000,
+        40: 150000,
+        50: 250000,
+        60: 500000,
+        70: 800000,
+        80: 1000000
+    };
+
+    // --- Core Game Loop ---
+    setInterval(tick, GAME_SPEED);
+
+    function tick() {
+        if (state.isDead || state.paused) return;
+
+        // 1. Time Passes
+        state.ageMonths++;
+        let ageYears = Math.floor(state.ageMonths / 12);
+
+        // 2. Economics (Monthly)
+        // Passive Income
+        let savingsInterest = state.savings * (0.02 / 12);
+        let stockGrowth = state.stocks * ((Math.random() * 0.15 - 0.05) / 12); // Volatile
+        let realEstateIncome = (state.realEstate > 0) ? (state.realEstate * 0.005) : 0; // Rent profit
+
+        let totalIncome = state.salary + savingsInterest + stockGrowth + realEstateIncome;
+        
+        // Lifestyle Creep / Inflation
+        if (state.ageMonths % 12 === 0) {
+            state.expenses = Math.floor(state.expenses * 1.03); // 3% inflation/lifestyle creep
+            state.salary = Math.floor(state.salary * 1.02); // 2% COLA raise
+        }
+
+        state.cash += totalIncome;
+        state.cash -= state.expenses;
+        
+        // Update Portfolio values
+        state.stocks += stockGrowth;
+
+        // 3. Health Decay
+        if (ageYears > 50) state.health -= 0.05;
+        if (ageYears > 80) state.health -= 0.2;
+        if (state.cash < 0) state.health -= 0.5; // Stress of debt
+
+        // 4. Check End Game
+        if (state.health <= 0 || ageYears >= 100) {
+            die();
+        }
+
+        // 5. Unlocks
+        if (state.cash > 2000) document.getElementById('investSection').style.display = 'block';
+
+        updateUI();
+    }
+
+    // --- Actions ---
+
+    function log(msg, type="") {
+        const logEl = document.getElementById('log');
+        const div = document.createElement('div');
+        div.className = `log-entry ${type}`;
+        div.innerText = `Age ${Math.floor(state.ageMonths/12)}: ${msg}`;
+        logEl.prepend(div);
+        if (logEl.children.length > 50) logEl.lastChild.remove();
+    }
+
+    function work() {
+        state.cash += 100;
+        state.health -= 1;
+        state.skill += 0.1;
+        log("Worked extra shift. Exhausting.", "green");
+        updateUI();
+    }
+
+    function study() {
+        state.skill += 1;
+        log("Read industry books. Skill increased.");
+        updateUI();
+    }
+
+    function takeCourse() {
+        if (state.cash >= 500) {
+            state.cash -= 500;
+            state.skill += 15;
+            log("Completed certification course.", "green");
+            checkForPromotion();
+        } else {
+            log("Can't afford course.", "red");
+        }
+        updateUI();
+    }
+
+    function network() {
+        if (state.cash >= 50) {
+            state.cash -= 50;
+            state.networkLevel += 1;
+            log("Went to networking event.");
+            checkForPromotion();
+        } else {
+            log("Can't afford networking.", "red");
+        }
+        updateUI();
+    }
+
+    function askRaise() {
+        let chance = (state.skill + state.networkLevel) / 100;
+        if (Math.random() < chance) {
+            state.salary = Math.floor(state.salary * 1.15);
+            state.raiseCount++;
+            log(`RAISE APPROVED! New Salary: $${state.salary}/mo`, "green");
+            // Career Progression
+            if (state.raiseCount === 2) state.jobTitle = "Shift Manager";
+            if (state.raiseCount === 5) state.jobTitle = "Store Manager";
+            if (state.raiseCount === 8) state.jobTitle = "Regional Director";
+            if (state.raiseCount === 12) state.jobTitle = "CEO";
+        } else {
+            state.health -= 2;
+            log("Raise denied. Boss was unimpressed.", "red");
+        }
+        updateUI();
+    }
+
+    function checkForPromotion() {
+        // Auto promotion check logic can go here for more RTS feel
+    }
+
+    function buyStock() {
+        if (state.cash >= 1000) {
+            state.cash -= 1000;
+            state.stocks += 1000;
+            log("Invested $1k in Index Funds.");
+        }
+        updateUI();
+    }
+
+    function buyRealEstate() {
+        if (state.cash >= 50000) {
+            state.cash -= 50000;
+            state.realEstate += 50000;
+            log("Purchased Rental Property!", "green");
+        }
+        updateUI();
+    }
+
+    function die() {
+        state.isDead = true;
+        let finalNw = getNetWorth();
+        alert(`GAME OVER\nYou lived to age ${Math.floor(state.ageMonths/12)}.\nFinal Net Worth: $${Math.floor(finalNw).toLocaleString()}`);
+        log(`DIED. R.I.P. Final Net Worth: $${Math.floor(finalNw).toLocaleString()}`, "red");
+    }
+
+    // --- Helpers & UI ---
+
+    function getNetWorth() {
+        return state.cash + state.savings + state.stocks + state.realEstate;
+    }
+
+    function updateUI() {
+        let ageYears = Math.floor(state.ageMonths / 12);
+        
+        document.getElementById('ageDisplay').innerText = ageYears + "y " + (state.ageMonths % 12) + "m";
+        document.getElementById('cashDisplay').innerText = "$" + Math.floor(state.cash).toLocaleString();
+        document.getElementById('incomeDisplay').innerText = "$" + Math.floor(state.salary).toLocaleString();
+        document.getElementById('expenseDisplay').innerText = "$" + Math.floor(state.expenses).toLocaleString();
+        document.getElementById('healthDisplay').innerText = Math.floor(state.health) + "%";
+        document.getElementById('jobTitle').innerText = state.jobTitle;
+
+        let nw = getNetWorth();
+        document.getElementById('netWorthDisplay').innerText = "$" + Math.floor(nw).toLocaleString();
+        document.getElementById('stocksDisplay').innerText = "$" + Math.floor(state.stocks).toLocaleString();
+        document.getElementById('realEstateDisplay').innerText = "$" + Math.floor(state.realEstate).toLocaleString();
+
+        // Update Peer Comparison
+        let decade = Math.floor(ageYears / 10) * 10;
+        let benchmark = benchmarks[decade] || 1000000;
+        if (decade < 20) benchmark = 2000; 
+
+        let percent = Math.min((nw / benchmark) * 50, 100); // 50% is "Average"
+        
+        let bar = document.getElementById('peerBar');
+        bar.style.width = percent + "%";
+        
+        let statusText = "Destitute";
+        if (percent > 20) statusText = "Struggling";
+        if (percent > 45) statusText = "Average";
+        if (percent > 60) statusText = "Doing Well";
+        if (percent > 90) statusText = "Wealthy";
+        if (percent >= 100) statusText = "Top 1%";
+        
+        document.getElementById('peerText').innerText = `${statusText} (vs Age ${decade}s)`;
+        
+        // Color logic
+        bar.style.backgroundColor = percent < 40 ? '#f44336' : (percent > 80 ? '#4caf50' : '#ff9800');
+
+        // Button States
+        document.getElementById('btnAskRaise').disabled = state.skill < 10;
+    }
+
+    // Initial Render
+    log("Game Started. Welcome to the workforce.");
+    updateUI();
+
+</script>
+</body>
+</html>
